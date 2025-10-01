@@ -97,5 +97,3 @@ python -m crawler.main --mode rss --source "식품음료신문" --limit 5
 - HWPX: `hwpx/` 하위에 수집기 클래스를 구현하고 `HWPX_REGISTRY`에 매핑합니다. 필요 시 `extractor.py`의 세션 래퍼를 재사용하여 텍스트 추출을 통합하세요.
 - RSS: 추가적인 전처리가 필요하면 `rss/base.py`의 `RssCollector`를 확장하거나 새로운 파서를 작성합니다.
 - 공통 설정 필드는 `crawler/config.py`에서 데이터 클래스로 관리되므로, 추가 필드가 필요하면 `raw` 딕셔너리를 참조하거나 데이터 클래스를 확장하면 됩니다.
-
-테스트 코드는 `tests/crawler/` 이하에 `pytest` 스타일로 구성하는 것을 권장하며, 외부 네트워크 의존성은 fixture나 VCR 카세트로 격리하는 것을 추천합니다.
