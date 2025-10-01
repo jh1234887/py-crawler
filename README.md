@@ -1,6 +1,6 @@
 # Crawler
 
-스크래핑·추출 흐름을 모듈화한 패키지입니다. 웹 HTML 스크래핑(`scrape`), HWPX 문서 추출(`hwpx`), RSS 수집(`rss`) 3가지 모드를 지원하며 모두 `argparse` 기반 CLI로 제어합니다.
+스크래핑·추출 흐름을 모듈화한 패키지입니다. 웹 HTML 스크래핑(`scrape`), HWPX 문서 추출(`hwpx`), RSS 수집(`rss`) 3가지 모드를 지원하며 모두 `argparse` 기반 CLI로 제어합니다.  
 
 ## 폴더 구조
 
