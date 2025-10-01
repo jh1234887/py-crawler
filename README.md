@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Crawler 프로젝트
 
 `selector.ipynb` 계열 노트북에서 사용하던 스크래핑·추출 흐름을 모듈화한 패키지입니다. 웹 HTML 스크래핑(`scrape`), HWPX 문서 추출(`hwpx`), RSS 수집(`rss`) 3가지 모드를 지원하며 모두 `argparse` 기반 CLI로 제어합니다.
@@ -99,7 +98,4 @@ python -m crawler.main --mode rss --source "식품음료신문" --limit 5
 - RSS: 추가적인 전처리가 필요하면 `rss/base.py`의 `RssCollector`를 확장하거나 새로운 파서를 작성합니다.
 - 공통 설정 필드는 `crawler/config.py`에서 데이터 클래스로 관리되므로, 추가 필드가 필요하면 `raw` 딕셔너리를 참조하거나 데이터 클래스를 확장하면 됩니다.
 
-테스트 코드는 `tests/crawler/` 이하에 `pytest` 스타일로 구성하는 것을 권장하며, 외부 네트워크 의존성은 fixture나 VCR 카세트로 격리하는 것을 추천합니다.
 =======
-
->>>>>>> 243fb7c3e40b5425b68d83e1b1097b8505f762e5
