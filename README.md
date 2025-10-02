@@ -62,6 +62,8 @@ python -m py-crawler.main --mode scrape --source foodnews --limit 2
 
 ### 3.2 rss 모드
 
+*RSS에서 본문 추출하는 작업 남음*
+
 RSS 피드를 파싱합니다.
 
 ```bash
