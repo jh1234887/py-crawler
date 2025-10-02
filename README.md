@@ -34,10 +34,10 @@ Playwright를 처음 설치한다면 `playwright install`을 추가로 실행하
 
 ## 3. CLI 사용법
 
-메인 엔트리포인트는 `crawler.main` 모듈입니다.
+메인 엔트리포인트는 `py-crawler.main` 모듈입니다.
 
 ```bash
-python -m crawler.main --mode <scrape|rss|hwpx|naver> [options]
+python -m py-crawler.main --mode <scrape|rss|hwpx|naver> [options]
 ```
 
 공통 옵션
@@ -53,7 +53,7 @@ python -m crawler.main --mode <scrape|rss|hwpx|naver> [options]
 등록된 HTML 스크래퍼를 실행하여 기사 목록과 본문을 수집합니다.
 
 ```bash
-python -m crawler.main --mode scrape --source foodnews --limit 2
+python -m py-crawler.main --mode scrape --source foodnews --limit 2
 ```
 
 - `--start-page`, `--end-page` : 페이지 범위를 직접 지정합니다.
@@ -62,21 +62,23 @@ python -m crawler.main --mode scrape --source foodnews --limit 2
 
 ### 3.2 rss 모드
 
+*RSS에서 본문 추출하는 작업 남음*
+
 RSS 피드를 파싱합니다.
 
 ```bash
-python -m crawler.main --mode rss --source foodicon --limit 20
+python -m py-crawler.main --mode rss --source all --limit 20
 ```
 
 - `--limit` 은 기사 개수 제한으로 해석됩니다.
-- 기본적으로 본문까지 수집하지 않으며, 필요 시 `crawler/rss/base.py`의 `RssCollector` 옵션을 조정하세요.
+- 기본적으로 본문까지 수집하지 않으며, 필요 시 `py-crawler/rss/base.py`의 `RssCollector` 옵션을 조정하세요.
 
 ### 3.3 hwpx 모드
 
 정부/기관 등에서 제공하는 HWPX 문서를 다운로드하고 미리보기/본문을 추출합니다.
 
 ```bash
-python -m crawler.main --mode hwpx --source mfds --output data/hwpx.json
+python -m py-crawler.main --mode hwpx --source mfds --output data/hwpx.json
 ```
 
 주요 옵션
@@ -90,7 +92,7 @@ python -m crawler.main --mode hwpx --source mfds --output data/hwpx.json
 네이버 뉴스 검색 API를 사용해 키워드 기반 결과를 수집하고, 각 기사에 대해 Crawl4AI로 본문을 크롤링합니다.
 
 ```bash
-python -m crawler.main --mode naver --source pharma_bio --limit 3 --output data/naver.json
+python -m py-crawler.main --mode naver --source pharma_bio --limit 3 --output data/naver.json
 ```
 
 - `--limit` 을 지정하지 않으면 `collection_settings.naver_api_display`와 `max_articles_per_keyword` 값을 사용합니다.
@@ -100,10 +102,10 @@ python -m crawler.main --mode naver --source pharma_bio --limit 3 --output data/
 
 ## 4. 출력 결과
 
-- `--output` 을 지정하면 UTF-8 JSON 파일을 생성합니다. 모드별 구조는 `crawler/main.py` 및 각 Collector 클래스의 `to_dict` 구현을 참고하세요.
+- `--output` 을 지정하면 UTF-8 JSON 파일을 생성합니다. 모드별 구조는 `py-crawler/main.py` 및 각 Collector 클래스의 `to_dict` 구현을 참고하세요.
 - 출력 경로가 없는 경우 콘솔에 요약만 표시합니다.
 - 기본적으로 파일 로그는 생성하지 않습니다. 로그가 필요하면 실행 전 `logging.basicConfig(...)` 등을 통해 핸들러를 등록하세요.
 
 ## 5. 메모
 
-- 새 스크래퍼는 `crawler/scrapers/`에 추가하고 `register_scraper` 데코레이터로 등록합니다.
+- 새 스크래퍼는 `py-crawler/scrapers/`에 추가하고 `register_scraper` 데코레이터로 등록합니다.
