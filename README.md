@@ -97,23 +97,13 @@ python -m crawler.main --mode naver --source pharma_bio --limit 3 --output data/
 - 실행 전 `naver_api.client_id` / `client_secret` (또는 환경변수 이름)을 설정해야 합니다. 자격 정보가 없으면 실행이 즉시 중단됩니다.
 - Crawl4AI 호출이 많을 경우 실행 시간이 길어질 수 있으므로, `--limit` 또는 카테고리 선택으로 범위를 조절하세요.
 
-## 4. 네이버 API 단독 실행
 
-레거시 스크립트 `naver_api.py` 는 내부적으로 `crawler` 모듈을 사용하도록 변경되었습니다. CLI와 동일한 옵션을 제공합니다.
-
-```bash
-python naver_api.py --category pharma_bio --limit 5
-python naver_api.py --list
-```
-
-출력은 `data/naver_news_<timestamp>.json` (또는 `--output` 지정 경로)에 저장됩니다.
-
-## 5. 출력 결과
+## 4. 출력 결과
 
 - `--output` 을 지정하면 UTF-8 JSON 파일을 생성합니다. 모드별 구조는 `crawler/main.py` 및 각 Collector 클래스의 `to_dict` 구현을 참고하세요.
 - 출력 경로가 없는 경우 콘솔에 요약만 표시합니다.
 - 기본적으로 파일 로그는 생성하지 않습니다. 로그가 필요하면 실행 전 `logging.basicConfig(...)` 등을 통해 핸들러를 등록하세요.
 
-## 6. 메모
+## 5. 메모
 
 - 새 스크래퍼는 `crawler/scrapers/`에 추가하고 `register_scraper` 데코레이터로 등록합니다.
