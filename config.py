@@ -22,10 +22,98 @@ class ScrapingSource:
 
 
 @dataclass
+class CollectionSettings:
+    days_filter: int = 7
+    naver_api_display: int = 10
+    naver_api_start: int = 1
+    naver_api_sort: str = "date"
+    request_timeout: int = 30
+    request_delay: float = 1.0
+    retry_attempts: int = 3
+    retry_delay: float = 2.0
+    naver_api_delay: float = 0.5
+    max_articles_per_keyword: int = 10
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_raw(cls, payload: Dict[str, Any] | None) -> "CollectionSettings":
+        payload = payload or {}
+        return cls(
+            days_filter=int(payload.get("days_filter", 7)),
+            naver_api_display=int(payload.get("naver_api_display", 10)),
+            naver_api_start=int(payload.get("naver_api_start", 1)),
+            naver_api_sort=str(payload.get("naver_api_sort", "date")),
+            request_timeout=int(payload.get("request_timeout", 30)),
+            request_delay=float(payload.get("request_delay", 1.0)),
+            retry_attempts=int(payload.get("retry_attempts", 3)),
+            retry_delay=float(payload.get("retry_delay", 2.0)),
+            naver_api_delay=float(payload.get("naver_api_delay", 0.5)),
+            max_articles_per_keyword=int(payload.get("max_articles_per_keyword", 10)),
+            raw=dict(payload),
+        )
+
+
+@dataclass
+class NaverApiConfig:
+    base_url: str = "https://openapi.naver.com/v1/search/news.json"
+    client_id: Optional[str] = None
+    client_secret: Optional[str] = None
+    client_id_env: Optional[str] = None
+    client_secret_env: Optional[str] = None
+    rate_limit_per_second: Optional[int] = None
+    max_daily_calls: Optional[int] = None
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_raw(cls, payload: Dict[str, Any] | None) -> "NaverApiConfig":
+        payload = payload or {}
+        return cls(
+            base_url=str(payload.get("base_url", cls.base_url)),
+            client_id=payload.get("client_id"),
+            client_secret=payload.get("client_secret"),
+            client_id_env=payload.get("client_id_env"),
+            client_secret_env=payload.get("client_secret_env"),
+            rate_limit_per_second=payload.get("rate_limit_per_second"),
+            max_daily_calls=payload.get("max_daily_calls"),
+            raw=dict(payload),
+        )
+
+
+@dataclass
+class NaverCategory:
+    slug: str
+    keywords: List[str]
+    enabled: bool = True
+    priority: Optional[int] = None
+    name: Optional[str] = None
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_raw(cls, slug: str, payload: Dict[str, Any]) -> "NaverCategory":
+        payload = payload or {}
+        return cls(
+            slug=slug,
+            keywords=list(payload.get("keywords", [])),
+            enabled=payload.get("enabled", True),
+            priority=payload.get("priority"),
+            name=payload.get("name") or payload.get("label"),
+            raw=dict(payload),
+        )
+
+    @property
+    def display_name(self) -> str:
+        return self.name or self.slug
+
+
+@dataclass
 class CrawlerConfig:
     sources: List[ScrapingSource]
     rss_sources: List["RssSource"]
     hwpx_sources: List["HwpxSource"]
+    naver_categories: List[NaverCategory]
+    collection_settings: CollectionSettings
+    naver_api: NaverApiConfig
+    crawl4ai: Dict[str, Any]
 
     @classmethod
     def from_file(cls, path: Path | str = DEFAULT_CONFIG_PATH) -> "CrawlerConfig":
@@ -45,7 +133,22 @@ class CrawlerConfig:
         ]
         rss_sources = [RssSource.from_raw(entry) for entry in payload.get("rss_sources", [])]
         hwpx_sources = [HwpxSource.from_raw(entry) for entry in payload.get("hwpx_sources", [])]
-        return cls(sources=sources, rss_sources=rss_sources, hwpx_sources=hwpx_sources)
+        categories = [
+            NaverCategory.from_raw(slug, entry)
+            for slug, entry in (payload.get("categories", {}) or {}).items()
+        ]
+        collection_settings = CollectionSettings.from_raw(payload.get("collection_settings"))
+        naver_api = NaverApiConfig.from_raw(payload.get("naver_api"))
+        crawl4ai = dict(payload.get("crawl4ai", {}))
+        return cls(
+            sources=sources,
+            rss_sources=rss_sources,
+            hwpx_sources=hwpx_sources,
+            naver_categories=categories,
+            collection_settings=collection_settings,
+            naver_api=naver_api,
+            crawl4ai=crawl4ai,
+        )
 
     def enabled_sources(self) -> Iterable[ScrapingSource]:
         return (source for source in self.sources if source.enabled)
@@ -82,6 +185,18 @@ class CrawlerConfig:
         for source in self.hwpx_sources:
             if source.slug.lower() == normalized or source.name.strip().lower() == normalized:
                 return source
+        return None
+
+    def enabled_naver_categories(self) -> Iterable[NaverCategory]:
+        return (category for category in self.naver_categories if category.enabled and category.keywords)
+
+    def find_naver_category(self, token: str) -> Optional[NaverCategory]:
+        normalized = token.strip().lower()
+        for category in self.naver_categories:
+            if category.slug.lower() == normalized:
+                return category
+            if category.display_name.lower() == normalized:
+                return category
         return None
 
 
@@ -138,5 +253,8 @@ __all__ = [
     "ScrapingSource",
     "RssSource",
     "HwpxSource",
+    "NaverCategory",
+    "NaverApiConfig",
+    "CollectionSettings",
     "DEFAULT_CONFIG_PATH",
 ]
