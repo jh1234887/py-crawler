@@ -15,8 +15,8 @@
     "base_url": "https://openapi.naver.com/v1/search/news.json",
     "rate_limit_per_second": 2,
     "max_daily_calls": 25000,
-    "client_id_env": "2wCblFwSF5t8Q8_q23qx",
-    "client_secret_env": "Q2EX1jGDEX"
+    "client_id": "",
+    "client_secret": ""
   },
   "categories": {
     "pharma_bio": {
