@@ -24,4 +24,4 @@ def get_scraper_for(source: ScrapingSource) -> Optional[Type[BaseScraper]]:
 __all__ = ["SCRAPER_REGISTRY", "register_scraper", "get_scraper_for"]
 
 # Ensure scrapers are registered on import.
-from . import consumernews, cucs, foodnews, foodtoday, medipana, nutradex  # noqa: E402 F401
+from . import consumernews, cucs, foodinfo, foodnews, foodtoday, medipana, nutradex  # noqa: E402 F401

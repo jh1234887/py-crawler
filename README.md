@@ -1,99 +1,119 @@
-# Crawler
+# Crawler Module
 
-스크래핑·추출 흐름을 모듈화한 패키지입니다. 웹 HTML 스크래핑(`scrape`), HWPX 문서 추출(`hwpx`), RSS 수집(`rss`) 3가지 모드를 지원하며 모두 `argparse` 기반 CLI로 제어합니다.  
+Python 기반 뉴스 수집 파이프라인입니다. `py-crawler` 패키지를 중심으로 RSS, 수동 스크래핑, HWPX, 네이버 뉴스 API를 하나의 CLI에서 실행할 수 있도록 구성되어 있습니다.
 
-## 폴더 구조
+## 1. 환경 준비
 
-```
-crawler/
-├── __init__.py          # 모듈 진입점 (`python -m crawler.main`)
-├── README.md            # 현재 문서
-├── config.py            # scraping/rss/hwpx 공통 설정 로더
-├── core.py              # HTML 스크래퍼 오케스트레이터
-├── main.py              # CLI 파서 및 모드별 실행 분기
-├── utils.py             # 콘텐츠 정제, URL 보정 헬퍼
-├── hwpx/                # HWPX 문서 미리보기 파싱 및 텍스트 추출
-│   ├── __init__.py      # 사이트별 수집기 레지스트리
-│   ├── base.py          # 공통 데이터 클래스와 수집기 기본형
-│   ├── extractor.py     # Playwright 기반 텍스트 추출 세션
-│   ├── kca.py           # 한국소비자원 게시판 수집기
-│   └── parsers.py       # iframe/synapviewer 링크 파서
-├── rss/                 # RSS 피드 수집기
-│   ├── __init__.py
-│   └── base.py          # feedparser 래퍼와 RssArticle 정의
-└── scrapers/            # HTML 기반 뉴스 스크래퍼
-    ├── __init__.py
-    ├── base.py
-    ├── consumernews.py
-    ├── cucs.py
-    ├── foodnews.py
-    ├── foodtoday.py
-    ├── medipana.py
-    └── nutradex.py
-```
-
-설정 파일은 기본적으로 루트의 `extended_config.json`을 사용하지만, `config.json` 같은 다른 JSON을 `--config` 옵션으로 지정할 수 있습니다. 각 섹션(`scraping_sources`, `hwpx_sources`, `rss_sources`)의 `slug` 또는 `name`을 CLI에서 그대로 지정하면 됩니다.
-
-## 실행 방법
-
-> ⚠️ 실제 뉴스 사이트 및 문서 뷰어에 요청을 전송하므로 실행 전 네트워크 정책과 대상 사이트 약관을 반드시 확인하세요.
-
-### 공통 옵션
+1. Python 3.12 이상을 사용합니다.
+2. 가상환경을 만든 뒤 `py-crawler/requirements.txt`를 설치합니다.
 
 ```bash
-python -m crawler.main [--mode MODE] [--source ...] [--output PATH]
+python -m venv .venv
+source .venv/bin/activate
+pip install -r py-crawler/requirements.txt
+# 또는 uv 사용 시
+uv venv --python 3.12
+source .venv/bin/activate
+uv pip install -r py-crawler/requirements.txt
 ```
 
-- `--mode`: `scrape`(기본) · `hwpx` · `rss` 중 선택
-- `--source` / `-s`: 특정 소스를 슬러그 또는 이름으로 지정 (여러 번 사용하거나 `,`로 구분 가능, `all` 지원)
-- `--limit`: `scrape`/`hwpx` 모드에서는 시작 페이지 기준 처리 페이지 수, `rss` 모드에서는 기사 개수 제한
-- `--output`: 결과를 JSON 파일로 저장 (지정하지 않으면 콘솔 요약만 출력)
-- `--list-sources`: 현재 모드에 해당하는 소스 목록과 활성화 여부 출력 후 종료
+Playwright를 처음 설치한다면 `playwright install`을 추가로 실행하세요.
 
-### scrape (HTML 스크래핑)
+## 2. 설정 파일
+
+기본 구성은 루트의 `config.json`에 정의됩니다. 주요 섹션은 다음과 같습니다.
+
+- `collection_settings`: 공통 요청 타임아웃, 네이버 API 기본 display 등 전역 크롤링 옵션
+- `scraping_sources`: CSS 셀렉터 기반 스크래퍼가 처리할 사이트 목록
+- `rss_sources`: RSS 피드 주소 및 인코딩 정보
+- `hwpx_sources`: HWPX 다운로드/미리보기 처리 소스
+- `categories`: 네이버 뉴스 API 카테고리와 키워드 목록
+- `naver_api`: `client_id` / `client_secret` 또는 대응 환경변수 이름, API 기본 URL 등
+
+다른 설정 파일을 사용하려면 CLI 실행 시 `--config` 옵션을 지정합니다.
+
+## 3. CLI 사용법
+
+메인 엔트리포인트는 `crawler.main` 모듈입니다.
 
 ```bash
-# 식품저널만 2페이지까지 스크래핑
+python -m crawler.main --mode <scrape|rss|hwpx|naver> [options]
+```
+
+공통 옵션
+
+- `--config PATH` : 사용할 설정 파일(기본값 `config.json`)
+- `--source/-s TOKEN` : 특정 소스(혹은 카테고리)를 지정. 여러 번 사용하거나 `,`로 구분 가능. `all` 로 활성 소스를 전부 선택합니다.
+- `--list-sources` : 해당 모드에서 사용 가능한 소스를 출력하고 종료합니다.
+- `--output PATH` : 결과를 JSON 파일로 저장합니다. 지정하지 않으면 콘솔 요약만 출력합니다.
+- `--limit` : 처리 범위를 제한합니다. 모드별 의미가 다릅니다.
+
+### 3.1 scrape 모드 (수동 스크래핑)
+
+등록된 HTML 스크래퍼를 실행하여 기사 목록과 본문을 수집합니다.
+
+```bash
 python -m crawler.main --mode scrape --source foodnews --limit 2
-
-# 여러 소스를 동시에 실행
-python -m crawler.main -s foodnews -s medipana
-
-# 결과를 JSON으로 저장
-python -m crawler.main --mode scrape --output data/scrape.json
 ```
 
-### hwpx (HWPX 문서 추출)
+- `--start-page`, `--end-page` : 페이지 범위를 직접 지정합니다.
+- `--limit` : 시작 페이지부터 처리할 페이지 수를 제한합니다.
+- 결과는 기사 배열(`title`, `link`, `summary` 등) 형태의 JSON으로 저장됩니다.
 
-Playwright 기반 브라우저를 사용하므로 최초 1회 `playwright install chromium` 실행이 필요합니다.
+### 3.2 rss 모드
+
+RSS 피드를 파싱합니다.
 
 ```bash
-# 한국소비자원 게시판에서 HWPX 문서를 추출 (텍스트 포함)
-python -m crawler.main --mode hwpx --source "한국소비자원"
-
-# 브라우저 창을 띄워서 디버깅
-python -m crawler.main --mode hwpx --source kca --no-headless
-
-# 미리보기 URL만 수집하고 텍스트 추출은 생략
-python -m crawler.main --mode hwpx --no-content
+python -m crawler.main --mode rss --source foodicon --limit 20
 ```
 
-현재 수집기는 `한국소비자원`(게시판)과 `식약처`(RSS → 문서뷰어) 구조를 지원합니다. 추가 기관을 연결하려면 `crawler/hwpx/`에 새 클래스를 작성하고 `HWPX_REGISTRY`에 매핑하세요.
-슬러그는 설정 파일(`hwpx_sources`)의 `slug` 필드를 따르며, 지정하지 않으면 이름(예: `식약처`)으로도 접근할 수 있습니다.
+- `--limit` 은 기사 개수 제한으로 해석됩니다.
+- 기본적으로 본문까지 수집하지 않으며, 필요 시 `crawler/rss/base.py`의 `RssCollector` 옵션을 조정하세요.
 
-### rss (RSS 피드)
+### 3.3 hwpx 모드
+
+정부/기관 등에서 제공하는 HWPX 문서를 다운로드하고 미리보기/본문을 추출합니다.
 
 ```bash
-# 기본 활성 RSS 모두 수집
-python -m crawler.main --mode rss
-
-# 특정 피드만 5개 기사씩 확인
-python -m crawler.main --mode rss --source "식품음료신문" --limit 5
+python -m crawler.main --mode hwpx --source mfds --output data/hwpx.json
 ```
 
-## 확장 및 커스터마이징
+주요 옵션
 
-- HTML 스크래퍼: `scrapers/`에 클래스를 추가하고 `@register_scraper("slug")`로 등록합니다.
-- HWPX: `hwpx/` 하위에 수집기 클래스를 구현하고 `HWPX_REGISTRY`에 매핑합니다. 필요 시 `extractor.py`의 세션 래퍼를 재사용하여 텍스트 추출을 통합하세요.
-- RSS: 추가적인 전처리가 필요하면 `rss/base.py`의 `RssCollector`를 확장하거나 새로운 파서를 작성합니다.
-- 공통 설정 필드는 `crawler/config.py`에서 데이터 클래스로 관리되므로, 추가 필드가 필요하면 `raw` 딕셔너리를 참조하거나 데이터 클래스를 확장하면 됩니다.
+- `--no-content` : 문서 본문 추출을 생략합니다.
+- `--headless` / `--no-headless` : Playwright 브라우저 실행 방식 선정
+- `--start-page`, `--end-page`, `--limit` : 페이지 네비게이션 제어
+
+### 3.4 naver 모드
+
+네이버 뉴스 검색 API를 사용해 키워드 기반 결과를 수집하고, 각 기사에 대해 Crawl4AI로 본문을 크롤링합니다.
+
+```bash
+python -m crawler.main --mode naver --source pharma_bio --limit 3 --output data/naver.json
+```
+
+- `--limit` 을 지정하지 않으면 `collection_settings.naver_api_display`와 `max_articles_per_keyword` 값을 사용합니다.
+- 실행 전 `naver_api.client_id` / `client_secret` (또는 환경변수 이름)을 설정해야 합니다. 자격 정보가 없으면 실행이 즉시 중단됩니다.
+- Crawl4AI 호출이 많을 경우 실행 시간이 길어질 수 있으므로, `--limit` 또는 카테고리 선택으로 범위를 조절하세요.
+
+## 4. 네이버 API 단독 실행
+
+레거시 스크립트 `naver_api.py` 는 내부적으로 `crawler` 모듈을 사용하도록 변경되었습니다. CLI와 동일한 옵션을 제공합니다.
+
+```bash
+python naver_api.py --category pharma_bio --limit 5
+python naver_api.py --list
+```
+
+출력은 `data/naver_news_<timestamp>.json` (또는 `--output` 지정 경로)에 저장됩니다.
+
+## 5. 출력 결과
+
+- `--output` 을 지정하면 UTF-8 JSON 파일을 생성합니다. 모드별 구조는 `crawler/main.py` 및 각 Collector 클래스의 `to_dict` 구현을 참고하세요.
+- 출력 경로가 없는 경우 콘솔에 요약만 표시합니다.
+- 기본적으로 파일 로그는 생성하지 않습니다. 로그가 필요하면 실행 전 `logging.basicConfig(...)` 등을 통해 핸들러를 등록하세요.
+
+## 6. 메모
+
+- 새 스크래퍼는 `crawler/scrapers/`에 추가하고 `register_scraper` 데코레이터로 등록합니다.
