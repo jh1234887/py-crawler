@@ -211,10 +211,11 @@
     }
   ],
   "content_extraction": {
-    "enabled": false,
+    "enabled": true,
     "max_articles_per_source": 3,
     "timeout": 30,
-    "retry_attempts": 2
+    "retry_attempts": 2,
+    "retry_delay": 1.0
   },
   "output_settings": {
     "save_raw_data": true,
