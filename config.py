@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.json"
+DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
 
 
 @dataclass
