@@ -1,0 +1,8 @@
+beautifulsoup4
+crawl4ai
+feedparser
+playwright
+psycopg2-binary
+python-dateutil
+requests
+urllib3

@@ -3,7 +3,21 @@ from __future__ import annotations
 import asyncio
 from typing import Iterable, List, Sequence, TYPE_CHECKING
 
-from extract_hwpx_latest import WebTextExtractor
+try:
+    from extract_hwpx_latest import WebTextExtractor
+except ModuleNotFoundError:  # Allow running without installing src/ as a package
+    import importlib
+    import sys
+    from pathlib import Path
+
+    _SRC_DIR = Path(__file__).resolve().parent.parent / "src"
+    if _SRC_DIR.exists():
+        src_str = str(_SRC_DIR)
+        if src_str not in sys.path:
+            sys.path.append(src_str)
+        WebTextExtractor = importlib.import_module("extract_hwpx_latest").WebTextExtractor
+    else:
+        raise
 
 if TYPE_CHECKING:
     from .base import HwpxDocument

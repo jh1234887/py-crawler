@@ -17,7 +17,7 @@ source .venv/bin/activate
 uv pip install -r py-crawler/requirements.txt
 ```
 
-Playwright를 처음 설치한다면 `playwright install`을 추가로 실행하세요.
+Playwright를 처음 설치한다면 `npm install playwright`을 추가로 실행하세요.
 
 ## 2. 설정 파일
 
@@ -62,16 +62,17 @@ python -m py-crawler.main --mode scrape --source foodnews --limit 2
 
 ### 3.2 rss 모드
 
-*RSS에서 본문 추출하는 작업 남음*
-
-RSS 피드를 파싱합니다.
+RSS 피드를 파싱하고 각 기사 페이지에서 본문을 자동으로 추출합니다. 기본 추출 전략은 `article`, `main`, `.article-body` 등 흔한 래퍼 중 가장 긴 텍스트 블록을 선택하며, 실패 시 단락을 합쳐서 반환합니다.
 
 ```bash
-python -m py-crawler.main --mode rss --source all --limit 20
+python -m py-crawler.main --mode rss --source all --limit 20 --article-content
 ```
 
 - `--limit` 은 기사 개수 제한으로 해석됩니다.
-- 기본적으로 본문까지 수집하지 않으며, 필요 시 `py-crawler/rss/base.py`의 `RssCollector` 옵션을 조정하세요.
+- 기본적으로 본문을 수집하며, 필요할 때 `--no-article-content`를 사용해 본문 요청을 건너뛸 수 있습니다.
+- 요약(`summary`) 필드는 RSS 본문에 포함된 HTML 태그를 파싱해 순수 텍스트로 정리합니다.
+- `py-crawler/rss/content_fetcher.py`의 `CUSTOM_EXTRACTORS` 맵을 통해 소스별 특수 셀렉터를 지정할 수 있습니다. 예를 들어 `foodsafety_suspension`·`foodsafety_administ`·`식약일보`는 각각 `div.inner-body`/`div#textinput` 등 커스텀 블록만 취합합니다.
+- `config.json`의 `content_extraction` 섹션에서 타임아웃, 재시도, 기사 당 추출 개수 제한을 조정할 수 있습니다.
 
 ### 3.3 hwpx 모드
 

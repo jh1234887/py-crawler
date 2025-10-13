@@ -18,7 +18,7 @@ from .core import Crawler
 from .hwpx import get_hwpx_collector
 from .hwpx.base import HwpxDocument
 from .rss import RssArticle, RssCollector
-from naver_api import NaverNewsCollector
+from .naver import NaverCollector
 
 
 @dataclass
@@ -94,6 +94,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="시작 페이지부터 처리할 페이지 수",  # overrides end-page when provided
     )
     parser.add_argument(
+        "--article-content",
+        dest="fetch_article_content",
+        action="store_true",
+        help="RSS 모드에서 기사 본문을 수집합니다.",
+    )
+    parser.add_argument(
+        "--no-article-content",
+        dest="fetch_article_content",
+        action="store_false",
+        help="RSS 모드에서 기사 본문 수집을 건너뜁니다.",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         help="결과를 JSON 파일로 저장합니다.",
@@ -120,7 +132,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_false",
         help="HWPX 모드에서 브라우저 창을 표시합니다.",
     )
-    parser.set_defaults(headless=None)
+    parser.set_defaults(headless=None, fetch_article_content=None)
     return parser
 
 
@@ -394,10 +406,34 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("활성화된 RSS 소스가 없습니다.")
             return 1
 
-        collector = RssCollector()
+        collection_settings = config.collection_settings
+        content_settings = config.content_extraction
+
+        if args.fetch_article_content is None:
+            fetch_article_content = True
+        else:
+            fetch_article_content = args.fetch_article_content
+
+        collector = RssCollector(
+            delay=collection_settings.request_delay,
+            timeout=collection_settings.request_timeout,
+            fetch_content=fetch_article_content,
+            content_timeout=content_settings.timeout,
+            content_retry_attempts=content_settings.retry_attempts,
+            content_retry_delay=content_settings.retry_delay,
+            max_articles_per_source=content_settings.max_articles_per_source,
+        )
         results: List[RssResult] = []
         for source in sources:
-            articles = collector.collect(source)
+            limit = args.limit
+            effective_limit = limit
+            if content_settings.max_articles_per_source is not None:
+                if effective_limit is None:
+                    effective_limit = content_settings.max_articles_per_source
+                else:
+                    effective_limit = min(effective_limit, content_settings.max_articles_per_source)
+
+            articles = collector.collect(source, limit=effective_limit)
             if args.limit is not None:
                 articles = articles[: args.limit]
             results.append(RssResult(source=source, articles=articles))
@@ -415,42 +451,28 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("활성화된 네이버 카테고리가 없습니다.")
             return 1
 
-        collector = NaverNewsCollector(config_file=str(args.config))
-        if not collector.naver_client_id or not collector.naver_client_secret:
+        collector = NaverCollector(config)
+        if not collector.has_credentials:
             print("네이버 API 인증 정보가 없습니다. config.json 또는 환경 변수를 확인하세요.")
             return 1
 
         if args.limit is not None:
             limit = max(1, args.limit)
-            settings = collector.config.setdefault("collection_settings", {})
-            settings["naver_api_display"] = limit
-            settings["max_articles_per_keyword"] = limit
+        else:
+            limit = None
 
-        selected_slugs = [category.slug for category in categories]
-        filtered_sources: Dict[str, List[str]] = {}
-        for slug in selected_slugs:
-            keywords = collector.sources.get(slug)
-            if keywords:
-                filtered_sources[slug] = keywords
-        if not filtered_sources:
-            print("선택한 네이버 카테고리에 사용 가능한 키워드가 없습니다.")
+        results = collector.collect(categories, display=limit)
+        if not results:
+            print("네이버 뉴스를 수집하지 못했습니다.")
             return 1
-        collector.sources = filtered_sources
-
-        articles = collector.collect_all_naver_news()
 
         if args.output:
             target_path = Path(args.output)
-            saved = collector.save_to_json(articles, filename=target_path.name)
-            saved_path = Path(saved)
-            if target_path.resolve() != saved_path.resolve():
-                target_path.parent.mkdir(parents=True, exist_ok=True)
-                saved_path.replace(target_path)
-                print(f"JSON 결과를 {target_path} 위치에 저장했습니다.")
-            else:
-                print(f"JSON 결과를 {saved_path} 위치에 저장했습니다.")
+            saved_path = collector.save_json(results, target_path)
+            print(f"JSON 결과를 {saved_path} 위치에 저장했습니다.")
         else:
-            collector.print_summary(articles)
+            for result in results:
+                print(f"naver_{result.category.slug}: {len(result.articles)}건 수집")
         return 0
 
     raise SystemExit("지원하지 않는 모드입니다.")

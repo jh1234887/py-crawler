@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.json"
+DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
 
 
 @dataclass
@@ -49,6 +49,28 @@ class CollectionSettings:
             retry_delay=float(payload.get("retry_delay", 2.0)),
             naver_api_delay=float(payload.get("naver_api_delay", 0.5)),
             max_articles_per_keyword=int(payload.get("max_articles_per_keyword", 10)),
+            raw=dict(payload),
+        )
+
+
+@dataclass
+class ContentExtractionSettings:
+    enabled: bool = True
+    max_articles_per_source: Optional[int] = None
+    timeout: int = 30
+    retry_attempts: int = 2
+    retry_delay: float = 1.0
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_raw(cls, payload: Dict[str, Any] | None) -> "ContentExtractionSettings":
+        payload = payload or {}
+        return cls(
+            enabled=bool(payload.get("enabled", True)),
+            max_articles_per_source=payload.get("max_articles_per_source"),
+            timeout=int(payload.get("timeout", 30)),
+            retry_attempts=int(payload.get("retry_attempts", 2)),
+            retry_delay=float(payload.get("retry_delay", 1.0)),
             raw=dict(payload),
         )
 
@@ -112,6 +134,7 @@ class CrawlerConfig:
     hwpx_sources: List["HwpxSource"]
     naver_categories: List[NaverCategory]
     collection_settings: CollectionSettings
+    content_extraction: ContentExtractionSettings
     naver_api: NaverApiConfig
     crawl4ai: Dict[str, Any]
 
@@ -138,6 +161,7 @@ class CrawlerConfig:
             for slug, entry in (payload.get("categories", {}) or {}).items()
         ]
         collection_settings = CollectionSettings.from_raw(payload.get("collection_settings"))
+        content_extraction = ContentExtractionSettings.from_raw(payload.get("content_extraction"))
         naver_api = NaverApiConfig.from_raw(payload.get("naver_api"))
         crawl4ai = dict(payload.get("crawl4ai", {}))
         return cls(
@@ -146,6 +170,7 @@ class CrawlerConfig:
             hwpx_sources=hwpx_sources,
             naver_categories=categories,
             collection_settings=collection_settings,
+            content_extraction=content_extraction,
             naver_api=naver_api,
             crawl4ai=crawl4ai,
         )
@@ -256,5 +281,6 @@ __all__ = [
     "NaverCategory",
     "NaverApiConfig",
     "CollectionSettings",
+    "ContentExtractionSettings",
     "DEFAULT_CONFIG_PATH",
 ]
