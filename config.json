@@ -117,7 +117,7 @@
       "encoding": "utf-8"
     },
     {
-      "name": "식약일보",
+      "name": "kfdn",
       "url": "https://www.kfdn.co.kr/rss/rss_news.php",
       "category": "식품안전",
       "enabled": true,
@@ -138,14 +138,14 @@
       "encoding": "euc-kr"
     },
     {
-      "name": "식품안전나라_회수",
+      "name": "foodsafety_suspension",
       "url": "https://www.foodsafetykorea.go.kr/rss/rss.do?menu_no=2713&menu_grp=MENU_NEW02",
       "category": "회수정보",
       "enabled": true,
       "encoding": "utf-8"
     },
     {
-      "name": "식품안전나라_행정처분",
+      "name": "foodsafety_administ",
       "url": "https://www.foodsafetykorea.go.kr/rss/rss.do?menu_no=2714&menu_grp=MENU_NEW02",
       "category": "행정처분",
       "enabled": true,

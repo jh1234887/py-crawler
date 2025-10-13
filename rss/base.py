@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 
 import feedparser
 import requests
+from bs4 import BeautifulSoup
 
 from ..config import RssSource
 from ..scrapers.base import DEFAULT_HEADERS
@@ -99,8 +100,8 @@ class RssCollector:
             article = RssArticle(
                 title=title,
                 link=resolved_link,
-                content=self._fetch_article_content(resolved_link, source.encoding),
-                summary=getattr(entry, "summary", None),
+                content=self._fetch_article_content(resolved_link, source.encoding, source.slug),
+                summary=self._clean_summary(getattr(entry, "summary", None)),
                 published=getattr(entry, "published", None),
             )
             articles.append(article)
@@ -125,11 +126,22 @@ class RssCollector:
             return resolved
         return None
 
-    def _fetch_article_content(self, url: str, encoding: Optional[str]) -> str:
+    def _fetch_article_content(self, url: str, encoding: Optional[str], source_slug: Optional[str]) -> str:
         if not self.fetch_content or not self.content_fetcher:
             return ""
-        content = self.content_fetcher.fetch(url, encoding=encoding)
+        content = self.content_fetcher.fetch(url, encoding=encoding, source_slug=source_slug)
         return content or ""
+
+    @staticmethod
+    def _clean_summary(summary: Optional[str]) -> Optional[str]:
+        if not summary:
+            return None
+        try:
+            text = BeautifulSoup(summary, "html.parser").get_text(" ", strip=True)
+        except Exception:
+            text = summary
+        normalized = " ".join(text.split())
+        return normalized or None
 
 
 __all__ = ["RssCollector", "RssArticle"]
